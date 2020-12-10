@@ -50,25 +50,27 @@ class AStarSearch():
         self.next_nodes = {}
         self.visited_nodes = {}
         self.closed_path = []
+        self.search_cost = []
+
 
     
     def heuristic_cost_function(self, node, distance_grid, net_grid):
 
-        if node.state == self.target_station:
-            return 0
-        else:
+        if node.state != self.target_station:
             #### capture distance cost from node to target
             disti = distance_grid[(distance_grid['from'] == node.state) | (distance_grid['to'] == node.state)]
             disti = disti[(disti['from'] == self.target_station) | (disti['to'] == self.target_station)]
             cost_distance = float(disti.distance)
+        else:
+            cost_distance = 0
 
-            #### capture path cost 
-            netdisti = net_grid[(net_grid['from'] == node.state) | (net_grid['to'] == node.state)]
-            netdisti = netdisti[(netdisti['from'] == node.mother_node) | (netdisti['to'] == node.mother_node)]
-            cost_directly_distance = float(netdisti.distance)
+        #### capture path cost 
+        netdisti = net_grid[(net_grid['from'] == node.state) | (net_grid['to'] == node.state)]
+        netdisti = netdisti[(netdisti['from'] == node.mother_node) | (netdisti['to'] == node.mother_node)]
+        cost_directly_distance = float(netdisti.distance)
 
-            #### final heuristic cost
-            final_cost = cost_distance + cost_directly_distance
+        #### final heuristic cost
+        final_cost = cost_distance + cost_directly_distance
 
         return final_cost
 
@@ -83,7 +85,7 @@ class AStarSearch():
         next_pos = net_grid[(net_grid['from'] == self.initial_station) | (net_grid['to'] == self.initial_station)]
         next_pos = list(next_pos['from']) + list(next_pos['to'])
         next_pos = [x for x in next_pos if x != self.initial_station]
-        print(next_pos)
+        print('First expansion of search: ', next_pos)
 
         # build first next stations nodes
         for pos in next_pos:
@@ -92,20 +94,32 @@ class AStarSearch():
             if node.state not in self.visited_nodes.keys(): # verify if is not on visited nodes
                 self.next_nodes[node] = node.cost
         
-        
+        print('Costs for each node: ',self.next_nodes)
         ### search next stations
         found=False
         while found == False:
 
             # get min cost node
             min_node = min(self.next_nodes, key=self.next_nodes.get)
-            print(min_node.state)
+            print('Go to: ', min_node.state,', with cost:', min_node.cost, '\n')
 
             # go to node
             self.visited_nodes[min_node.state] = node
 
             ### evaluate if it is target, if yes, return
             if min_node.state == self.target_station:
+                # evaluate if it has a closed path during search and remove it
+                # to generate best path
+                print('Found Path!')
+                print('Total search cost: ', sum(self.search_cost))
+                for station in min_node.path_to_node:
+                    if min_node.path_to_node.count(station) > 1:
+                        position = [i for i, x in enumerate( min_node.path_to_node) if x == station][-1]
+                        best_path = min_node.path_to_node[position:]
+                        print('Best path cost: ', sum(self.search_cost[position:]))
+                        return min_node.state, best_path,  min_node.path_to_node
+                # return path
+                print('Best path cost: ', sum(self.search_cost))
                 return min_node.state, min_node.path_to_node
             else:            
                 self.next_nodes = {}
@@ -113,11 +127,11 @@ class AStarSearch():
                 next_pos = net_grid[(net_grid['from'] == min_node.state) | (net_grid['to'] == min_node.state)]
                 next_pos = list(next_pos['from']) + list(next_pos['to'])
                 next_pos = [x for x in next_pos if x != min_node.state]
-                print(next_pos)
 
                 ### treat closed path
                 # remove closed path stations
                 next_pos = [x for x in next_pos if x not in self.closed_path]
+                print('Next expansion of search: ', next_pos)
 
                 # if path is closed, go back
                 if len(next_pos) == 1 and next_pos[0] in self.visited_nodes.keys():
@@ -127,6 +141,7 @@ class AStarSearch():
 
                 ### update path to node
                 min_node.path_to_node.append(min_node.state)
+                self.search_cost.append(min_node.cost)
                 
                 ### build next stations nodes and calculate cost function
                 for pos in list(next_pos):
@@ -135,12 +150,12 @@ class AStarSearch():
                     node.cost = self.heuristic_cost_function(node, distance_grid, net_grid)
                     if node.state not in self.visited_nodes.keys():
                         self.next_nodes[node] = node.cost
-    
+                print('Costs for each node: ', self.next_nodes)
 
 
 
 # build search agent
-search_agent = AStarSearch('E2', 'E13')
+search_agent = AStarSearch('E1', 'E13')
 
 # execute search
 search_agent.heuristic_search(dist, net)
