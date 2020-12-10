@@ -111,7 +111,8 @@ class AStarSearch():
                 # evaluate if it has a closed path during search and remove it
                 # to generate best path
                 print('Found Path!')
-                print('Total search cost: ', sum(self.search_cost))
+                print('Search cost: ', sum(self.search_cost))
+                #print('Search cost: ', len(self.search_cost))
                 for station in min_node.path_to_node:
                     if min_node.path_to_node.count(station) > 1:
                         position = [i for i, x in enumerate( min_node.path_to_node) if x == station][-1]
